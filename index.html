@@ -293,9 +293,10 @@
         
         // 發送 AJAX 請求到 GitHub 上的資料庫
         $.when(
-          $.get('https://raw.githubusercontent.com/你的GitHub帳號/你的倉庫名稱/main/name_database'),
-          $.get('https://raw.githubusercontent.com/你的GitHub帳號/你的倉庫名稱/main/chdatabase'),
-          $.get('https://raw.githubusercontent.com/你的GitHub帳號/你的倉庫名稱/main/endatabase')
+
+          $.get('https://raw.githubusercontent.com/YUNAN-B/propresentoool/refs/heads/main/name_database'),
+          $.get('https://raw.githubusercontent.com/YUNAN-B/propresentoool/refs/heads/main/chdatabase'),
+          $.get('https://raw.githubusercontent.com/YUNAN-B/propresentoool/refs/heads/main/endatabase')
         ).done(function(nameData, chData, enData) {
           const nameDatabase = nameData[0].split('\n');
           const chDatabase = chData[0].split('\n');
