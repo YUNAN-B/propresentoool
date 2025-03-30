@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-tw">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>讚美之泉歌詞搜索工具</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "微軟正黑體", Arial, sans-serif;
+    }
+
+    body {
+      background-color: #F7FFF7;
+      width: 100%;
+      min-height: 100vh;
+    }
+
+    .nav {
+      background-color: #0032a8;
+      color: white;
+      width: 100%;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: center;
+      position: sticky;
+      top: 0;
+      left: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .nav > div {
+      width: 100%;
+      max-width: 1200px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .title {
+      font-size: 1.6em;
+      font-weight: bold;
+      color: white;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+    }
+
+    .nav-links > a {
+      margin-left: 20px;
+      color: white;
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+
+    .nav-links > a:hover {
+      color: #FFD700;
+    }
+
+    .search-container {
+      background-color: white;
+      width: 100%;
+      max-width: 1200px;
+      margin: 30px auto;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .search-form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .input-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .search-form label {
+      font-weight: bold;
+      font-size: 1.1em;
+      color: #333;
+      min-width: 120px;
+    }
+
+    .search-form input {
+      flex: 1;
+      padding: 10px 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 1em;
+      transition: border-color 0.3s;
+    }
+
+    .search-form input:focus {
+      outline: none;
+      border-color: #0032a8;
+      box-shadow: 0 0 0 2px rgba(0, 50, 168, 0.2);
+    }
+
+    .search-options {
+      display: flex;
+      gap: 15px;
+      margin-top: 10px;
+    }
+
+    .search-form button {
+      background-color: #0032a8;
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.3s;
+      margin-top: 10px;
+    }
+
+    .search-form button:hover {
+      background-color: #002180;
+    }
+
+    .pinyin-button {
+      background-color: #4CAF50 !important;
+    }
+    
+    .pinyin-button:hover {
+      background-color: #3e8e41 !important;
+    }
+
+    .results-title {
+      background-color: #0032a8;
+      color: white;
+      padding: 12px 20px;
+      margin: 20px auto 0;
+      max-width: 1200px;
+      border-radius: 8px 8px 0 0;
+      font-size: 1.3em;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .result-container {
+      background-color: white;
+      max-width: 1200px;
+      margin: 0 auto 30px;
+      border-radius: 0 0 8px 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+    }
+
+    .result-section {
+      margin-bottom: 25px;
+    }
+
+    .result-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .result-heading {
+      font-size: 1.2em;
+      font-weight: bold;
+      color: #0032a8;
+      margin-bottom: 10px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .result-content {
+      line-height: 1.8;
+      white-space: pre-line;
+      color: #333;
+    }
+
+    .pinyin-line {
+      color: #777;
+      font-size: 0.95em;
+      margin-bottom: 10px;
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 20px;
+      font-size: 1.2em;
+      color: #0032a8;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 30px;
+      height: 30px;
+      border: 3px solid rgba(0, 50, 168, 0.3);
+      border-radius: 50%;
+      border-top-color: #0032a8;
+      animation: spin 1s ease-in-out infinite;
+      margin-right: 10px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .error-message {
+      color: #D32F2F;
+      background-color: #FFEBEE;
+      padding: 10px 15px;
+      border-radius: 4px;
+      margin-top: 10px;
+      display: none;
+    }
+
+    @media (max-width: 768px) {
+      .input-group {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .input-group input {
+        width: 100%;
+      }
+      
+      .search-options {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="nav">
+    <div>
+      <h1 class="title">讚美之泉歌詞搜索工具</h1>
+      <div class="nav-links">
+        <a href="javascript:void(0)" id="aboutLink">關於工具</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="search-container">
+    <div class="search-form">
+      <div class="input-group">
+        <label for="song-name">歌曲名稱：</label>
+        <input type="text" id="song-name" placeholder="請輸入歌曲中文名稱（例如：讓讚美飛揚）">
+      </div>
+    
+      <div class="search-options">
+        <button type="button" id="searchLyrics">搜尋歌詞</button>
+        <button type="button" id="searchPinyin" class="pinyin-button">搜尋拼音</button>
+      </div>
+    
+      <div class="error-message" id="errorMessage"></div>
+    </div>
+  </div>
+
+  <div class="loading" id="loading">
+    <div class="spinner"></div> 資料載入中，請稍候...
+  </div>
+
+  <div class="results-title" style="display: none;" id="resultsTitle">
+    搜尋結果
+  </div>
+
+  <div class="result-container" style="display: none;" id="resultContainer">
+    <!-- 結果內容將在這裡動態生成 -->
+  </div>
+
+  <script>
+    $(document).ready(function() {
+      // 搜尋歌詞功能
+      $('#searchLyrics').click(function() {
+        const songName = $('#song-name').val().trim();
+        
+        if (!songName) {
+          showError('請輸入歌曲名稱');
+          return;
+        }
+        
+        // 顯示載入中
+        $('#loading').show();
+        $('#resultsTitle').hide();
+        $('#resultContainer').hide();
+        $('#errorMessage').hide();
+        
+        // 發送 AJAX 請求到後端 API
+        $.ajax({
+          url: '/api/search-lyrics',
+          method: 'POST',
+          data: { songName: songName },
+          success: function(response) {
+            if (response.error) {
+              showError(response.error);
+            } else {
+              displayLyricsResults(response);
+            }
+            $('#loading').hide();
+          },
+          error: function() {
+            showError('搜尋時發生錯誤，請稍後再試');
+            $('#loading').hide();
+          }
+        });
+      });
+      
+      // 搜尋拼音功能
+      $('#searchPinyin').click(function() {
+        const lyrics = $('#song-name').val().trim();
+        
+        if (!lyrics) {
+          showError('請輸入歌詞');
+          return;
+        }
+        
+        $('#loading').show();
+        $('#resultsTitle').hide();
+        $('#resultContainer').hide();
+        $('#errorMessage').hide();
+        
+        // 發送 AJAX 請求到後端 API
+        $.ajax({
+          url: '/api/search-pinyin',
+          method: 'POST',
+          data: { lyrics: lyrics },
+          success: function(response) {
+            if (response.error) {
+              showError(response.error);
+            } else {
+              displayPinyinResults(response.lyrics, response.pinyin);
+            }
+            $('#loading').hide();
+          },
+          error: function() {
+            showError('搜尋時發生錯誤，請稍後再試');
+            $('#loading').hide();
+          }
+        });
+      });
+      
+      $('#aboutLink').click(function() {
+        alert('這是一個讚美之泉歌詞搜索工具，可以查詢歌詞和拼音。\n\n數據來源：sop.org');
+      });
+      
+      // 顯示錯誤訊息
+      function showError(message) {
+        $('#errorMessage').text(message).show();
+      }
+      
+      // 顯示歌詞搜尋結果
+      function displayLyricsResults(results) {
+        const container = $('#resultContainer');
+        container.empty();
+        
+        // 添加歌曲標題
+        container.append(`
+          <div class="result-section">
+            <div class="result-heading">歌曲資訊</div>
+            <div class="result-content">
+              <strong>中文名稱：</strong>${results.chName}<br>
+              <strong>英文名稱：</strong>${results.enName}
+            </div>
+          </div>
+        `);
+        
+        // 添加中文歌詞
+        container.append(`
+          <div class="result-section">
+            <div class="result-heading">中文歌詞</div>
+            <div class="result-content">${results.chLyrics}</div>
+          </div>
+        `);
+        
+        // 添加英文歌詞（如果存在）
+        if (results.enLyrics) {
+          container.append(`
+            <div class="result-section">
+              <div class="result-heading">英文歌詞</div>
+              <div class="result-content">${results.enLyrics}</div>
+            </div>
+          `);
+        } else {
+          container.append(`
+            <div class="result-section">
+              <div class="result-heading">英文歌詞</div>
+              <div class="result-content">找不到英文歌詞</div>
+            </div>
+          `);
+        }
+        
+        $('#resultsTitle').show();
+        container.show();
+      }
+      
+      // 顯示拼音搜尋結果
+      function displayPinyinResults(lyrics, pinyin) {
+        const container = $('#resultContainer');
+        container.empty();
+        
+        // 處理歌詞和拼音的對照顯示
+        const lyricsLines = lyrics.split('\n');
+        let pinyinHtml = '<div class="result-section">';
+        pinyinHtml += '<div class="result-heading">歌詞拼音對照</div>';
+        pinyinHtml += '<div class="result-content">';
+        
+        lyricsLines.forEach((line, index) => {
+          if (line.trim()) {
+            pinyinHtml += `<div>${line}</div>`;
+            pinyinHtml += `<div class="pinyin-line">${pinyin.split('\n')[index]}</div>`;
+          } else {
+            pinyinHtml += '<br>';
+          }
+        });
+        
+        pinyinHtml += '</div></div>';
+        container.append(pinyinHtml);
+        
+        $('#resultsTitle').show();
+        container.show();
+      }
+    });
+  </script>
+</body>
+</html>
