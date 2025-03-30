@@ -250,7 +250,7 @@
     <div class="search-form">
       <div class="input-group">
         <label for="song-name">歌曲名稱：</label>
-        <input type="text" id="song-name" placeholder="請輸入歌曲中文名稱（例如：讓讚美飛揚）">
+        <input type="text" id="song-name" placeholder="請輸入歌曲中文名稱或關鍵字（例如：讓讚美飛揚）">
       </div>
     
       <div class="search-options">
@@ -281,7 +281,7 @@
         const songName = $('#song-name').val().trim();
         
         if (!songName) {
-          showError('請輸入歌曲名稱');
+          showError('請輸入歌曲名稱或關鍵字');
           return;
         }
         
@@ -293,32 +293,33 @@
         
         // 發送 AJAX 請求到 GitHub 上的資料庫
         $.when(
-                 
-          $.get('https://raw.githubusercontent.com/YUNAN-B/propresentoool/refs/heads/main/name_database'),
-          $.get('https://raw.githubusercontent.com/YUNAN-B/propresentoool/refs/heads/main/chdatabase'),
-          $.get('https://raw.githubusercontent.com/YUNAN-B/propresentoool/refs/heads/main/endatabase')
+          $.get('https://raw.githubusercontent.com/你的GitHub帳號/你的倉庫名稱/main/name_database'),
+          $.get('https://raw.githubusercontent.com/你的GitHub帳號/你的倉庫名稱/main/chdatabase'),
+          $.get('https://raw.githubusercontent.com/你的GitHub帳號/你的倉庫名稱/main/endatabase')
         ).done(function(nameData, chData, enData) {
           const nameDatabase = nameData[0].split('\n');
           const chDatabase = chData[0].split('\n');
           const enDatabase = enData[0].split('\n');
           
-          const index = nameDatabase.indexOf(songName);
-          if (index === -1) {
-            showError('找不到該歌曲');
+          const results = [];
+          for (let i = 0; i < nameDatabase.length; i++) {
+            if (nameDatabase[i].includes(songName) || chDatabase[i].includes(songName) || enDatabase[i].includes(songName)) {
+              results.push({
+                chName: nameDatabase[i],
+                enName: enDatabase[i],
+                chLyrics: chDatabase[i],
+                enLyrics: '暫無英文歌詞'
+              });
+            }
+          }
+          
+          if (results.length === 0) {
+            showError('找不到包含該關鍵字的歌曲');
             $('#loading').hide();
             return;
           }
           
-          const chLyrics = chDatabase[index];
-          const enName = enDatabase[index];
-          
-          displayLyricsResults({
-            chName: songName,
-            enName: enName,
-            chLyrics: chLyrics,
-            enLyrics: '暫無英文歌詞'
-          });
-          
+          displayLyricsResults(results);
           $('#loading').hide();
         }).fail(function() {
           showError('搜尋時發生錯誤，請稍後再試');
@@ -345,32 +346,34 @@
         const container = $('#resultContainer');
         container.empty();
         
-        // 添加歌曲標題
-        container.append(`
-          <div class="result-section">
-            <div class="result-heading">歌曲資訊</div>
-            <div class="result-content">
-              <strong>中文名稱：</strong>${results.chName}<br>
-              <strong>英文名稱：</strong>${results.enName}
+        results.forEach(result => {
+          // 添加歌曲標題
+          container.append(`
+            <div class="result-section">
+              <div class="result-heading">歌曲資訊</div>
+              <div class="result-content">
+                <strong>中文名稱：</strong>${result.chName}<br>
+                <strong>英文名稱：</strong>${result.enName}
+              </div>
             </div>
-          </div>
-        `);
-        
-        // 添加中文歌詞
-        container.append(`
-          <div class="result-section">
-            <div class="result-heading">中文歌詞</div>
-            <div class="result-content">${results.chLyrics}</div>
-          </div>
-        `);
-        
-        // 添加英文歌詞
-        container.append(`
-          <div class="result-section">
-            <div class="result-heading">英文歌詞</div>
-            <div class="result-content">${results.enLyrics}</div>
-          </div>
-        `);
+          `);
+          
+          // 添加中文歌詞
+          container.append(`
+            <div class="result-section">
+              <div class="result-heading">中文歌詞</div>
+              <div class="result-content">${result.chLyrics}</div>
+            </div>
+          `);
+          
+          // 添加英文歌詞
+          container.append(`
+            <div class="result-section">
+              <div class="result-heading">英文歌詞</div>
+              <div class="result-content">${result.enLyrics}</div>
+            </div>
+          `);
+        });
         
         $('#resultsTitle').show();
         container.show();
