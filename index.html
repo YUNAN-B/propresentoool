@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>批批踢的福音</title>
+  <title>讚美之泉歌詞搜索工具</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
   <style>
     * {
@@ -297,14 +297,19 @@
         return $.when(
           $.get('https://raw.githubusercontent.com/YUNAN-B/propresentoool/refs/heads/main/name_database'),
           $.get('https://raw.githubusercontent.com/YUNAN-B/propresentoool/refs/heads/main/chdatabase'),
-          $.get('https://raw.githubusercontent.com/YUNAN-B/propresentoool/refs/heads/main/endatabase')
-        ).done(function(nameData, chData, enData) {
+          $.get('https://raw.githubusercontent.com/YUNAN-B/propresentoool/refs/heads/main/endatabase'),
+          $.get('https://raw.githubusercontent.com/YUNAN-B/propresentoool/refs/heads/main/ppt_databace') // 載入 ppt_database
+        ).done(function(nameData, chData, enData, pptData) {
           const nameDatabase = nameData[0].split('\n');
           const rawChDatabase = chData[0];
           const rawEnDatabase = enData[0];
+          const pptDatabase = pptData[0].split('\n'); // 假設 ppt_database 是以 '\n' 分隔的行
 
           // 解析 name_database，建立中文名到英文名的映射
           const nameMap = parseNameDatabase(nameDatabase);
+
+          // 解析 ppt_database，建立中文名到 PowerPoint 連結的映射
+          const pptMap = parsePptDatabase(pptDatabase);
 
           // 處理中文歌詞資料
           const chSongs = processLyrics(rawChDatabase, 'ch');
@@ -312,15 +317,17 @@
           // 處理英文歌詞資料
           const enSongs = processLyrics(rawEnDatabase, 'en');
 
-          // 合併中英文歌曲資訊
+          // 合併中英文歌曲資訊及 PowerPoint 連結
           songsDatabase = chSongs.map(chSong => {
-            const enTitle = nameMap[chSong.title] || 'N/A'; // 用中文名查找對應的英文名
-            const enSong = enSongs.find(song => song.title === enTitle) || {}; // 用英文名查找歌詞
+            const enTitle = nameMap[chSong.title] || 'N/A';
+            const enSong = enSongs.find(song => song.title === enTitle) || {};
+            const pptLink = pptMap[chSong.title] || 'N/A';
             return {
               title: chSong.title,        // 中文名
               enTitle: enTitle,          // 英文名
               lyrics: chSong.lyrics,     // 中文歌詞
-              enLyrics: enSong.lyrics || '暫無英文歌詞' // 英文歌詞
+              enLyrics: enSong.lyrics || '暫無英文歌詞', // 英文歌詞
+              pptLink: pptLink           // PowerPoint 連結
             };
           });
 
@@ -336,14 +343,30 @@
       function parseNameDatabase(data) {
         const nameMap = {};
         data.forEach(row => {
-          const columns = row.split('</td><td>'); // 假設資料以 </td><td> 分隔
+          const columns = row.split('</td><td>');
           if (columns.length >= 2) {
-            const chName = columns[0].replace(/<\/?td>/g, "").trim(); // 第一項：中文名
-            const enName = columns[1].trim();                         // 第二項：英文名
-            nameMap[chName] = enName; // 建立映射
+            const chName = columns[0].replace(/<\/?td>/g, "").trim();
+            const enName = columns[1].trim();
+            nameMap[chName] = enName;
           }
         });
         return nameMap;
+      }
+
+      // 解析 ppt_database，返回中文名到 PowerPoint 連結的映射
+      function parsePptDatabase(data) {
+        const pptMap = {};
+        data.forEach(row => {
+          const columns = row.split('</td><td>');
+          if (columns.length >= 4) {
+            const chName = columns[0].replace(/<\/?td>/g, "").trim();
+            const pptLinkMatch = columns[3].match(/href="(.+?)"/);
+            if (pptLinkMatch) {
+              pptMap[chName] = pptLinkMatch[1]; // 提取 Tradbi 連結
+            }
+          }
+        });
+        return pptMap;
       }
 
       // 處理歌詞資料的函數
@@ -405,6 +428,44 @@
         alert('這是一個讚美之泉歌詞搜索工具，可以查詢歌詞和拼音。\n\n數據來源：sop.org\n\n使用方法：輸入歌曲名稱、歌詞片段或關鍵字進行搜尋');
       });
 
+      // 顯示歌詞搜尋結果
+      function displayLyricsResults(results, keyword) {
+        const container = $('#resultContainer');
+        container.empty();
+
+        results.forEach(result => {
+          const highlightedTitle = highlightText(result.title, keyword);
+          const highlightedEnTitle = highlightText(result.enTitle, keyword);
+          const highlightedLyrics = highlightText(result.lyrics, keyword);
+          const highlightedEnLyrics = highlightText(result.enLyrics, keyword);
+          const pptLink = result.pptLink !== 'N/A' 
+            ? `<a href="${result.pptLink}" target="_blank">下載繁體版PowerPoint</a>` 
+            : '無下載連結';
+
+          container.append(`
+            <div class="result-section">
+              <div class="result-heading">歌曲資訊</div>
+              <div class="result-content">
+                <strong>中文名稱：</strong>${highlightedTitle}<br>
+                <strong>英文名稱：</strong>${highlightedEnTitle}<br>
+                <strong>下載：</strong>${pptLink}
+              </div>
+            </div>
+            <div class="result-section">
+              <div class="result-heading">中文歌詞</div>
+              <div class="result-content">${highlightedLyrics}</div>
+            </div>
+            <div class="result-section">
+              <div class="result-heading">英文歌詞</div>
+              <div class="result-content">${highlightedEnLyrics}</div>
+            </div>
+          `);
+        });
+
+        $('#resultsTitle').show();
+        container.show();
+      }
+
       // 顯示錯誤訊息
       function showError(message) {
         $('#errorMessage').text(message).show();
@@ -416,46 +477,6 @@
         if (!keyword) return text;
         const regex = new RegExp('(' + keyword + ')', 'gi');
         return text.replace(regex, '<span class="highlight">$1</span>');
-      }
-
-      // 顯示歌詞搜尋結果
-      function displayLyricsResults(results, keyword) {
-        const container = $('#resultContainer');
-        container.empty();
-
-        results.forEach(result => {
-          const highlightedTitle = highlightText(result.title, keyword);
-          const highlightedEnTitle = highlightText(result.enTitle, keyword);
-          const highlightedLyrics = highlightText(result.lyrics, keyword);
-          const highlightedEnLyrics = highlightText(result.enLyrics, keyword);
-
-          container.append(`
-            <div class="result-section">
-              <div class="result-heading">歌曲資訊</div>
-              <div class="result-content">
-                <strong>中文名稱：</strong>${highlightedTitle}<br>
-                <strong>英文名稱：</strong>${highlightedEnTitle}
-              </div>
-            </div>
-          `);
-
-          container.append(`
-            <div class="result-section">
-              <div class="result-heading">中文歌詞</div>
-              <div class="result-content">${highlightedLyrics}</div>
-            </div>
-          `);
-
-          container.append(`
-            <div class="result-section">
-              <div class="result-heading">英文歌詞</div>
-              <div class="result-content">${highlightedEnLyrics}</div>
-            </div>
-          `);
-        });
-
-        $('#resultsTitle').show();
-        container.show();
       }
 
       // 讓回車鍵觸發搜尋
